@@ -1,0 +1,15 @@
+Resources:
+  KeyPair:
+    Type: AWS::EC2::KeyPair
+    Properties:
+      KeyFormat: pem
+      KeyName: key_pair
+      KeyType: rsa
+
+Outputs:
+  KeyPair:
+    Description: A reference to the created key pair
+    Value: !Ref KeyPair
+    Export:
+      Name:
+        Fn::Sub: "${AWS::StackName}-KeyPair"

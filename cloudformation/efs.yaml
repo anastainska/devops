@@ -1,0 +1,65 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: This cloudformation will create EFS
+Parameters:
+    VPCStackName:
+      Type: String
+      Default: "VPCStack"
+    SGStackName:
+      Type: String
+      Default: "SecurityGroupsStack"
+    SystemName:
+      Type: String
+      Description: System for which this cloudformation is created.
+      Default: tm-devops-trainee-efs
+
+Resources:
+  EFSSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupName: !Sub "${AWS::StackName}-EFSSecurityGroup"
+      GroupDescription: "Security group for EFS"
+
+  EFSFileSystem:
+    Type: AWS::EFS::FileSystem
+    Properties:
+      BackupPolicy:
+        Status: ENABLED
+      PerformanceMode: maxIO
+      Encrypted: true
+
+  EFSMountTargetAZ1:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref EFSFileSystem
+      SubnetId: !ImportValue PublicSubnet1ID
+      SecurityGroups:
+        - Fn::ImportValue:
+            Fn::Sub: "${SGStackName}-EFSSecurityGroup"
+
+  EFSMountTargetAZ2:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref EFSFileSystem
+      SubnetId: !ImportValue PublicSubnet2ID
+      SecurityGroups:
+        - Fn::ImportValue:
+            Fn::Sub: "${SGStackName}-EFSSecurityGroup"
+
+Outputs:
+  ElasticFileSystem:
+    Description: Elastic file system.
+    Value: !Ref EFSFileSystem
+    Export:
+      Name: EFS
+
+  EFSMountTargetAZ1Id:
+    Description: EFS mount target Id in availability zone 1.
+    Value: !Ref EFSMountTargetAZ1
+    Export:
+      Name: EFSMountTargetAZ1ID
+
+  EFSMountTargetAZ2Id:
+    Description: EFS mount target Id in availability zone 2.
+    Value: !Ref EFSMountTargetAZ2
+    Export:
+      Name: EFSMountTargetAZ2ID

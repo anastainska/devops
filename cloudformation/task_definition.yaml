@@ -1,0 +1,64 @@
+Parameters:
+  EFSStackName:
+    Type: String
+    Default: "EFSStack"
+
+Resources:
+  ECSTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      ContainerDefinitions:
+        - Memory: 128
+          PortMappings:
+            - HostPort: 80
+              ContainerPort: 80
+              Protocol: tcp
+          Essential: true
+          MountPoints:
+            - ContainerPath: "/usr/share/nginx/html"
+              SourceVolume: "efs-html"
+          Name: nginx
+          Image: nginx
+      Volumes:
+        - Name: "efs-html"
+          EFSVolumeConfiguration:
+            FilesystemId:
+              Fn::ImportValue: "EFS"
+            TransitEncryption: ENABLED
+      Family: "efs-tutorial"
+      TaskRoleArn: !Ref TaskRole
+
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ecs-task-${AWS::StackName}
+      Path: /
+      AssumeRolePolicyDocument: |
+        {
+            "Statement": [{
+                "Effect": "Allow",
+                "Principal": { "Service": [ "ecs-tasks.amazonaws.com" ]},
+                "Action": [ "sts:AssumeRole" ]
+            }]
+        }
+      Policies:
+        - PolicyName: !Sub ecs-task-${AWS::StackName}
+          PolicyDocument:
+            {
+              "Version": "2012-10-17",
+              "Statement":
+                [
+                  {
+                    "Effect": "Allow",
+                    "Action": "ecr:GetAuthorizationToken",
+                    "Resource": "*"
+                  }
+                ]
+            }
+
+Outputs:
+  ECSTaskDefinition:
+    Description: A reference to the created Task
+    Value: !Ref ECSTaskDefinition
+    Export:
+      Name: ECSTaskDefinition

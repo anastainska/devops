@@ -1,0 +1,78 @@
+Parameters:
+  VPCStackName:
+    Type: String
+    Default: "VPCStack"
+
+Resources:
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow HTTP, SSH incoming traffic
+      GroupName: ec2-sg
+      SecurityGroupIngress: 
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+      Tags: 
+        - Key: "made for"
+          Value: "security group"
+      VpcId: 
+        Fn::ImportValue: VPCID
+
+  EFSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: SG for EFS
+      GroupName: efs-sg
+      SecurityGroupIngress: 
+        - IpProtocol: tcp
+          FromPort: 2049
+          ToPort: 2049
+          SourceSecurityGroupId: !Ref EC2SecurityGroup
+      Tags:
+      - Key: "made for"
+        Value: "security group"
+      VpcId: 
+        Fn::ImportValue: VPCID
+
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow HTTP incoming traffic
+      GroupName: alb-sg
+      SecurityGroupIngress: 
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      Tags: 
+        - Key: "made for"
+          Value: "security group"
+      VpcId: 
+        Fn::ImportValue: VPCID
+
+Outputs:
+  EC2SecurityGroup:
+    Description: A reference to the created EC2 Security Group
+    Value: !Ref EC2SecurityGroup
+    Export:
+      Name:
+        Fn::Sub: "${AWS::StackName}-EC2SecurityGroup"
+  EFSSecurityGroup:
+    Description: A reference to the created EFS Security Group
+    Value: !Ref EFSSecurityGroup
+    Export:
+      Name:
+        Fn::Sub: "${AWS::SecurityGroupsStack}-EFSSecurityGroup"
+  ALBSecurityGroup:
+    Description: A reference to the created ALB Security Group
+    Value: !Ref ALBSecurityGroup
+    Export:
+      Name:
+        Fn::Sub: "${AWS::StackName}-ALBSecurityGroup"
+    

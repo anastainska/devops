@@ -1,0 +1,68 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Metadata:
+  License: Apache-2.0
+Description: 'This CloudFormation will create an EC2 instance'
+Parameters:
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
+    Type: AWS::EC2::KeyPair::KeyName
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+  InstanceType:
+    Description: WebServer EC2 instance type
+    Type: String
+    Default: t2.micro
+    ConstraintDescription: must be a valid EC2 instance type.
+  AMI:
+    Type: String
+    Default: 'ami-0de43e61758b7158c'
+  SGStackName:
+    Type: String
+    Default: "SecurityGroupsStack"
+  EFSStackName:
+    Type: String
+    Default: "EFSStack"
+  VPCStack:
+    Type: String
+    Default: "VPCStack"
+
+
+Resources:
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref 'InstanceType'
+      KeyName: !Ref KeyName
+      ImageId: !Ref AMI
+      SecurityGroupIds:
+        - Fn::ImportValue: !Sub "${SGStackName}-EC2SecurityGroup"
+      SubnetId:
+        Fn::ImportValue: "PublicSubnet1ID"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          yum install -y nfs-utils
+          mkdir /mnt/efs
+          mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 "${EFSStackName}-FileSystem".efs.${AWS::Region}.amazonaws.com:/ /mnt/efs
+          echo '<html>' > /mnt/efs/index.html
+          echo '    <title>' >> /mnt/efs/index.html
+          echo '        A letter for Techmagic :)' >> /mnt/efs/index.html
+          echo '    </title>' >> /mnt/efs/index.html
+          echo '    <head>' >> /mnt/efs/index.html
+          echo '        Hello, Techmagic!' >> /mnt/efs/index.html
+          echo '    </head>' >> /mnt/efs/index.html
+          echo '</html>' >> /mnt/efs/index.html
+
+Outputs:
+  InstanceId:
+    Description: InstanceId of the newly created EC2 instance
+    Value: !Ref 'EC2Instance'
+  AZ:
+    Description: Availability Zone of the newly created EC2 instance
+    Value: !GetAtt EC2Instance.AvailabilityZone
+  PublicDNS:
+    Description: Public DNSName of the newly created EC2 instance
+    Value: !GetAtt EC2Instance.PublicDnsName
+  PublicIP:
+    Description: Public IP address of the newly created EC2 instance
+    Value: !GetAtt EC2Instance.PublicIp
